@@ -4,7 +4,7 @@ License:             BSD
 License-file:        LICENSE
 Cabal-Version:       >= 1.6
 Author:              Boyun Tang
-Maintainer:          tangboyun@hotmail.com
+Maintainer:          Boyun Tang <tangboyun@hotmail.com>
 
 Category:            Bioinformatics
 Synopsis:            A parser for GeneBank sequence format.
