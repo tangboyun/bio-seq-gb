@@ -1,0 +1,31 @@
+Name:                bio-seq-gb
+Version:             0.0.1
+License:             BSD
+License-file:        LICENSE
+Cabal-Version:       >= 1.6
+Author:              Boyun Tang
+Maintainer:          tangboyun@hotmail.com
+
+Category:            Bioinformatics
+Synopsis:            A parser for GeneBank sequence format.
+Description:         This is a plugin for the bio library that provide a parser for manipulating
+                     GeneBank sequences.
+
+Tested-With:         GHC==7.4.1
+Build-Type:          Simple
+Data-Files:          README
+
+Library
+  Build-Depends:     base>=4 && <5, bytestring >= 0.9.1,
+                     attoparsec, bio >= 0.5.2, conduit >= 0.4.0.1,
+                     attoparsec-conduit >= 0.4.0
+
+  Exposed-modules:   Bio.Sequence.GB,
+                     Bio.Sequence.GB.Types
+
+  Extensions:        OverloadedStrings
+  Ghc-Options:       -Wall -O2
+
+Source-Repository head
+  Type:           git
+  Location:       https://github.com/tangboyun/bio-seq-gb
