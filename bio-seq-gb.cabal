@@ -18,13 +18,13 @@ Data-Files:          README
 Library
   Build-Depends:     base>=4 && <5, bytestring >= 0.9.1,
                      attoparsec, bio >= 0.5.2, conduit >= 0.4.0.1,
-                     attoparsec-conduit >= 0.4.0
+                     attoparsec-conduit >= 0.4.0, split >= 0.1.4.2
 
   Exposed-modules:   Bio.Sequence.GB,
                      Bio.Sequence.GB.Types
 
   Extensions:        OverloadedStrings
-  Ghc-Options:       -Wall -O2
+  Ghc-Options:       -Wall -O2 -fno-warn-unused-do-bind
 
 Source-Repository head
   Type:           git
