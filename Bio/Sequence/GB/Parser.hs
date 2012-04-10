@@ -27,29 +27,30 @@ parseGBs = do
 
 parseGB :: Parser GBRecord
 parseGB = do
-  loc <- parseLOCUS <* endOfLine
-  def <- parseDEFINITION <* endOfLine
-  acc <- parseACCESSION <* endOfLine
-  ver <- parseVERSION <* endOfLine
-  dbl <- optional $ parseDBLINK <* endOfLine
-  key <- parseKEYWORDS <* endOfLine
-  seg <- optional $ parseSEGMENT <* endOfLine
-  sou <- parseSOURCE 
-  arts <- many1 $ endOfLine *> parseARTICLE
+  loc  <- parseLOCUS <* endOfLine                <?> "Parsing error: LOCUS"
+  def  <- parseDEFINITION <* endOfLine           <?> "Parsing error: DEFINITION"
+  acc  <- parseACCESSION <* endOfLine            <?> "Parsing error: ACCESSION"
+  ver  <- parseVERSION <* endOfLine              <?> "Parsing error: VERSION"
+  dbl  <- (optional $ parseDBLINK <* endOfLine)  <?> "Parsing error: DBLINK"
+  key  <- parseKEYWORDS <* endOfLine             <?> "Parsing error: KEYWORDS"
+  seg  <- (optional $ parseSEGMENT <* endOfLine) <?> "Parsing error: SEGMENT"
+  sou  <- parseSOURCE                            <?> "Parsing error: SOURCE"
+  arts <- (many1 $ endOfLine *> parseARTICLE)    <?> "Parsing error: REFERENCE"
   endOfLine
-  com <- optional $ parseCOMMENT <* endOfLine
-  fea <- string "FEATURES" *> manyTill anyChar (try endOfLine) *> 
-         many1 (parseFEATURE <* endOfLine)
-  ori <- parseORIGIN
+  com  <- (optional $ parseCOMMENT <* endOfLine) <?> "Parsing error: COMMENT"
+  fea  <- string "FEATURES" *> 
+          manyTill anyChar (try endOfLine) *> 
+          many1 (parseFEATURE <* endOfLine)     <?> "Parsing error: FEATURES"
+  ori  <- parseORIGIN                            <?> "Parsing error: ORIGIN"
   return $! GB loc def acc ver dbl key seg sou arts com fea ori
  
 parseLOCUS :: Parser LOCUS
 parseLOCUS = do
-  string "LOCUS"
+  string "LOCUS" 
   skipSpace
   name <- takeWhile1 (not . isSpace)
   skipSpace
-  len  <- decimal
+  len  <- decimal 
   skipSpace
   string "bp" <|> string "aa"
   skipSpace
