@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings,TypeSynonymInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module : 
@@ -173,7 +173,7 @@ data LocDescriptor = Base {-# UNPACK #-} !Int
                    | OneIn {-# UNPACK #-} !Int {-# UNPACK #-} !Int
                      
 data Range = Range {
-   completeness :: {-# UNPACK #-} !Completeness 
+   completeness :: !Completeness 
   ,begin :: {-# UNPACK #-} !Int 
   ,end :: {-# UNPACK #-} !Int
   } 
@@ -373,23 +373,23 @@ instance Show FEATURE where
               let v' = if all isDigit $ unpack v
                        then v
                        else '"' `B8.cons` v `B8.snoc` '"'
-                  s21 = (B8.pack $ replicate 21 ' ') `B8.snoc` '/'
+                  s21 = B8.pack (replicate 21 ' ') `B8.snoc` '/'
               in if k /= "translation"
                  then s21 `B8.append` k `B8.snoc` '=' `B8.append` v'
                  else let (vh,vt) = B8.splitAt 45 v'
-                          s' = '\n' `B8.cons` (B8.pack $ replicate 21 ' ')
+                          s' = '\n' `B8.cons` B8.pack (replicate 21 ' ')
                           vS = B8.intercalate s' $ 
-                               vh:(map B8.pack $ splitEvery 58 $ B8.unpack vt)
+                               vh:map B8.pack (splitEvery 58 $ B8.unpack vt)
                       in s21 `B8.append` k `B8.snoc` '=' `B8.append` vS
             ) ss
 
                        
 instance Show ORIGIN where
   show (ORIGIN str) = "ORIGIN" ++ "\n" ++
-                      (intercalate "\n" $
-                       map (\(i,s) -> 
+                      intercalate "\n" 
+                       (map (\(i,s) -> 
                              printf "%10d" (i * 60 + 1) ++ " " ++ s) $
-                       zip ([0..]::[Int]) $ map (intercalate " ") $ 
+                       zip ([0..]::[Int]) $ map unwords $ 
                        splitEvery 6 $ splitEvery 10 (unpack str)) ++ "\n//"
 
 instance Show GBRecord where
@@ -407,12 +407,10 @@ instance Show GBRecord where
     ,fmap show . segment
     ,fmap show . Just . source
     ,fmap 
-     (\rs -> 
-       intercalate "\n" $ map 
-       (\(i,r) -> 
-         "REFERENCE\t" ++ show i ++ "\n" ++ show r
-           ) $
-       zip [1..] rs ) . Just . references
+       (intercalate "\n" . map 
+        (\(i,r) -> 
+          "REFERENCE\t" ++ show i ++ "\n" ++ show r
+        ) . zip [1..]) . Just . references
     ,fmap show . comment
     ,fmap (("FEATURES\tLocation/Qualifiers\n" ++) . 
            intercalate "\n" . map show) . Just . features
