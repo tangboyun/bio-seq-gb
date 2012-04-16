@@ -12,18 +12,23 @@
 --
 -----------------------------------------------------------------------------
 module Bio.Sequence.GB.Parser
+       -- (
+       --   parseGBs
+       -- , parseGB
+       -- )
        where
 import           Bio.Sequence.GB.Types
 import           Control.Applicative
 import           Control.Monad
 import           Data.Attoparsec.ByteString.Char8
+import qualified Data.Attoparsec.ByteString.Char8 as At
 import           Data.ByteString                  (ByteString)
 import qualified Data.ByteString.Char8            as B8
-import           Data.Char                        (toUpper,isPrint,isAlphaNum,isAlpha)
+import           Data.Char                        (toUpper,isPrint,isAlpha)
 
 parseGBs :: Parser [GBRecord]
 parseGBs = do
-  many1 (parseGB <* many space)
+  many1 $ many space *> parseGB
 
 parseGB :: Parser GBRecord
 parseGB = do
@@ -38,6 +43,7 @@ parseGB = do
   arts <- (many1 $ endOfLine *> parseARTICLE)    <?> "Parsing error: REFERENCE"
   endOfLine
   com  <- (optional $ parseCOMMENT <* endOfLine) <?> "Parsing error: COMMENT"
+  (optional $ parsePRIMARY *> skipSpace)        <?> "Parsing error: PRIMARY" 
   fea  <- string "FEATURES" *> 
           manyTill anyChar (try endOfLine) *> 
           many1 (parseFEATURE <* endOfLine)     <?> "Parsing error: FEATURES"
@@ -62,7 +68,7 @@ parseLOCUS = do
   gbd <- many1 letter_ascii
   skipSpace
   date <- takeWhile1 (not . isSpace)
-  return $! LOCUS name len (MoleculeType (read poly) (fmap read topo)) (read gbd) date
+  return $! LOCUS name len (MoleculeType (B8.pack poly) (fmap read topo)) (read gbd) date
  
 parseDEFINITION :: Parser DEFINITION
 parseDEFINITION = do
@@ -80,7 +86,7 @@ parseACCESSION :: Parser ACCESSION
 parseACCESSION = do
   string "ACCESSION"
   skipSpace
-  access <- takeWhile1 isAlphaNum
+  access <- takeWhile1 (not . isSpace)
   return $! ACCESSION $ access
 
 parseVERSION :: Parser VERSION
@@ -89,7 +95,7 @@ parseVERSION = do
   skipSpace
   str <- takeWhile1 (/= '.')
   char '.'
-  ver <- decimal
+  ver <- decimal :: Parser Integer
   skipSpace
   gi <- parseGI
   return $! VERSION (str `B8.snoc` '.' `B8.append` (B8.pack $ show ver)) gi
@@ -165,9 +171,9 @@ parseMaybeMultiLines = do
   a <- takeWhile1 isPrint
   as <- optional $
         many1 $ endOfLine *> string "   " *> many1 (char ' ') *>
-        takeWhile1 isPrint
+        (many $ satisfy isPrint)
   case as of
-    Just as' -> return $! B8.intercalate " " $ a : as'
+    Just as' -> return $! B8.intercalate " " $ a : map B8.pack as'
     _        -> return a
 
 parseSubKeyword :: ByteString -> Parser ByteString
@@ -177,6 +183,11 @@ parseSubKeyword keyword = do
   skipSpace
   result <- parseMaybeMultiLines
   return $! result
+
+parsePRIMARY :: Parser ()
+parsePRIMARY = do
+  string "PRIMARY" *> skipSpace *> parseMaybeMultiLines *> return ()
+  
 
 parseCOMMENT :: Parser COMMENT
 parseCOMMENT = do
@@ -193,189 +204,19 @@ parseFEATURE = do
   loc <- parseLOCDes
   endOfLine
   q <- parseQualifier
-  qs_ <- optional $ many1 $ endOfLine *> parseQualifier
-  let qs = case qs_ of
-        Nothing -> [q]
-        Just qs' -> q:qs'
-  case str of
-    "allele"          -> return $! Allele loc qs
-    "attenuator"      -> return $! Attenuator loc qs
-    "C_region"        -> return $! C_region loc qs
-    "CAAT_signal"     -> return $! CAAT_signal loc qs
-    "CDS"             -> return $! CDS loc qs
-    "conflict"        -> return $! Conflict loc qs
-    "D-loop"          -> return $! D_loop loc qs
-    "D_segment"       -> return $! D_segment loc qs
-    "enhancer"        -> return $! Enhancer loc qs
-    "exon"            -> return $! Exon loc qs
-    "gene"            -> return $! Gene loc qs
-    "GC_signal"       -> return $! GC_signal loc qs
-    "iDNA"            -> return $! IDNA loc qs
-    "intron"          -> return $! Intron loc qs
-    "J_region"        -> return $! J_region loc qs
-    "LTR"             -> return $! LTR loc qs
-    "mat_peptide"     -> return $! Mat_peptide loc qs
-    "misc_binding"    -> return $! Misc_binding loc qs
-    "misc_difference" -> return $! Misc_difference loc qs
-    "misc_feature"    -> return $! Misc_feature loc qs
-    "misc_recomb"     -> return $! Misc_recomb loc qs
-    "misc_RNA"        -> return $! Misc_RNA loc qs
-    "misc_signal"     -> return $! Misc_signal loc qs
-    "misc_structure"  -> return $! Misc_structure loc qs
-    "modified_base"   -> return $! Modified_base loc qs
-    "mRNA"            -> return $! MRNA loc qs
-    "mutation"        -> return $! Mutation loc qs
-    "N_region"        -> return $! N_region loc qs
-    "old_sequence"    -> return $! Old_sequence loc qs
-    "polyA_signal"    -> return $! PolyA_signal loc qs
-    "polyA_site"      -> return $! PolyA_site loc qs
-    "precursor_RNA"   -> return $! Precursor_RNA loc qs
-    "prim_transcript" -> return $! Prim_transcript loc qs
-    "primer"          -> return $! Primer loc qs
-    "primer_bind"     -> return $! Primer_bind loc qs
-    "promoter"        -> return $! Promoter loc qs
-    "protein_bind"    -> return $! Protein_bind loc qs
-    "RBS"             -> return $! RBS loc qs
-    "rep_origin"      -> return $! Rep_origin loc qs
-    "repeat_region"   -> return $! Repeat_region loc qs
-    "repeat_unit"     -> return $! Repeat_unit loc qs
-    "rRNA"            -> return $! RRNA loc qs
-    "S_region"        -> return $! S_region loc qs
-    "satellite"       -> return $! Satellite loc qs
-    "scRNA"           -> return $! ScRNA loc qs
-    "sig_peptide"     -> return $! Sig_peptide loc qs
-    "snRNA"           -> return $! SnRNA loc qs
-    "source"          -> return $! Source loc qs
-    "stem_loop"       -> return $! Stem_loop loc qs
-    "STS"             -> return $! STSite loc qs
-    "TATA_signal"     -> return $! TATA_signal loc qs
-    "terminator"      -> return $! Terminator loc qs
-    "transit_peptide" -> return $! Transit_peptide loc qs
-    "transposon"      -> return $! Transposon loc qs
-    "tRNA"            -> return $! TRNA loc qs
-    "unsure"          -> return $! Unsure loc qs
-    "V_region"        -> return $! V_region loc qs
-    "variation"       -> return $! Variation loc qs
-    "-"               -> return $! Hyphen loc qs
-    "-10_signal"      -> return $! Signal_10 loc qs
-    "-35_signal"      -> return $! Signal_35 loc qs
-    "3'clip"          -> return $! Clip3' loc qs
-    "3'UTR"           -> return $! UTR3' loc qs
-    "5'clip"          -> return $! Clip5' loc qs
-    "5'UTR"           -> return $! UTR5' loc qs
-    "Region"          -> return $! Region loc qs
-    "Protein"         -> return $! Protein loc qs
-    _                 -> error "Unrecognized feature.\n"
+  qs <- many $ endOfLine *> parseQualifier
+  return $! FEATURE str loc $ q:qs      
   where
-    parseLOCDes = 
-      let parseBase = Base <$> decimal
-          parseSite = do
-            d1 <- decimal
-            char '^'
-            d2 <- decimal
-            return $! Site d1 d2
-          parseOneIn = do
-            d1 <- decimal
-            char '.'
-            d2 <- decimal
-            return $! OneIn d1 d2
-          parseOneLoc = do
-            p1 <- optional $ string "<"
-            d1 <- decimal
-            string ".."
-            p2 <- optional $ string ">"
-            d2 <- decimal
-            case p1 of
-              Nothing   -> case p2 of
-                Nothing -> return $! Range Complete d1 d2
-                _       -> return $! Range PartialAt3' d1 d2
-              _         -> case p2 of
-                Nothing -> return $! Range PartialAt5' d1 d2
-                _       -> return $! Range PartialAtBothEnd d1 d2
-          parseLOC = do
-            prefix <- optional $ 
-                      choice [string "complement" <* string "("
-                             ,string "join" <* string "("
-                             ,string "order" <* string "("]
-            case prefix of 
-              Nothing -> do
-                l <- parseOneLoc
-                return $! Loc Nothing $ Single l
-              Just "complement" -> do
-                prefix' <- optional $ 
-                           choice [string "join" <* string "("
-                                  ,string "order" <* string "("]
-                case prefix' of
-                  Nothing -> do      
-                    l <- parseOneLoc
-                    ls <- optional $ many1 $ 
-                          many space *> string "," *> many space *> parseOneLoc
-                    case ls of
-                      Nothing -> do 
-                        many space 
-                        string ")" 
-                        return $! Loc (Just [Complement]) $ Single l
-                      Just ls' -> do
-                        many space
-                        string ")"
-                        return $! Loc (Just [Complement]) $ Multiple $ l:ls'
-                  Just "join" -> do
-                    l <- parseOneLoc
-                    ls <- optional $ many1 $ 
-                          many space *> string "," *> many space *> parseOneLoc
-                    case ls of
-                      Nothing -> do 
-                        many space 
-                        string "))" 
-                        return $! Loc (Just [Complement,Join]) $ Single l
-                      Just ls' -> do
-                        many space
-                        string "))"
-                        return $! Loc (Just [Complement,Join]) $ Multiple $ l:ls'
-                  Just "order" -> do
-                    l <- parseOneLoc
-                    ls <- optional $ many1 $ 
-                          many space *> string "," *> many space *> parseOneLoc
-                    case ls of
-                      Nothing -> do 
-                        many space 
-                        string "))" 
-                        return $! Loc (Just [Complement,Order]) $ Single l
-                      Just ls' -> do
-                        many space
-                        string "))"
-                        return $! Loc (Just [Complement,Order]) $ Multiple $ l:ls'
-
-              Just "join" -> do
-                l <- parseOneLoc
-                ls <- optional $ many1 $ 
-                      many space *> string "," *> many space *> parseOneLoc
-                case ls of
-                  Nothing -> do 
-                    many space 
-                    string ")" 
-                    return $! Loc (Just [Join]) $ Single l
-                  Just ls' -> do
-                    many space
-                    string ")"
-                    return $! Loc (Just [Join]) $ Multiple $ l:ls'
-              Just "order" -> do
-                l <- parseOneLoc
-                ls <- optional $ many1 $ 
-                      many space *> string "," *> many space *> parseOneLoc
-                case ls of
-                  Nothing -> do 
-                    many space 
-                    string ")" 
-                    return $! Loc (Just [Order]) $ Single l
-                  Just ls' -> do
-                    many space
-                    string ")"
-                    return $! Loc (Just [Order]) $ Multiple $ l:ls'
-      in choice [parseLOC
-                ,parseBase
-                ,parseSite
-                ,parseOneIn]
+    parseLOCDes = do
+      ss <- optional $ many1 $ 
+            string "complement(" <|>
+            string "join(" <|>
+            string "order("
+      case ss of
+        Nothing -> takeWhile1 isPrint
+        Just ss' -> do 
+          cs <- many1 (satisfy (/= ')')) <* replicateM_ (length ss') (char ')')
+          return $ B8.concat ss' `B8.append` B8.pack cs `B8.append` B8.pack ( replicate (length ss') ')')
     parseQualifier = do
       replicateM_ 21 $ char ' ' -- qualifier begin at Col 22
       char '/'
@@ -384,24 +225,24 @@ parseFEATURE = do
       c <- optional $ char '"'
       case c of
         Nothing -> do 
-          num <- decimal
+          num <- decimal :: Parser Integer
           return $! (k, B8.pack $! show num)
         _ -> do
-          t <- takeWhile1 (\c -> isPrint c && c /= '"')
+          t <- At.takeWhile (\ch -> isPrint ch && ch /= '"') -- can be empty
           ts' <- optional $ many1 $ endOfLine *>
-                replicateM_ 21 (char ' ') *>
-                takeWhile1 (\c -> isPrint c && c /= '"')
+                 replicateM_ 21 (char ' ') *>
+                 takeWhile1 (\ch -> isPrint ch && ch /= '"')
           char '"'
           case ts' of
             Just ts -> return $! (k, B8.concat $! t : ts)
             _       -> return $! (k, t)
 
-parseCONTIG :: Parser CONTIG
-parseCONTIG = do
-  string "CONTIG"
-  skipSpace
-  str <- parseMaybeMultiLines
-  return $! CONTIG str
+-- parseCONTIG :: Parser CONTIG
+-- parseCONTIG = do
+--   string "CONTIG"
+--   skipSpace
+--   str <- parseMaybeMultiLines
+--   return $! CONTIG str
 
 parseORIGIN :: Parser ORIGIN
 parseORIGIN = do
