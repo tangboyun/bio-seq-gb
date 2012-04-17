@@ -1,6 +1,6 @@
 Name:                bio-seq-gb
 Version:             0.0.1
-License:             BSD
+License:             BSD3
 License-file:        LICENSE
 Cabal-Version:       >= 1.6
 Author:              Boyun Tang
@@ -21,6 +21,7 @@ Library
                      attoparsec-conduit >= 0.4.0, split >= 0.1.4.2
 
   Exposed-modules:   Bio.Sequence.GB,
+                     Bio.Sequence.GB.Parser,
                      Bio.Sequence.GB.Types
 
   Extensions:        OverloadedStrings

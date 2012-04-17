@@ -71,7 +71,11 @@ data GeneBankDivision = PRI -- ^ primate sequences
                       | ENV -- ^ environmental sampling sequences
                         deriving (Show,Read)
                                   
-data MoleculeType = MoleculeType !ByteString !(Maybe Topology)
+data MoleculeType = MoleculeType {
+   molType :: !ByteString 
+  ,topo :: !(Maybe Topology)
+  }
+                    
 data Topology = Linear                    
               | Circular
                          deriving (Show,Read)
@@ -162,13 +166,13 @@ instance Show LOCUS where
                 if "NP_" `B8.isPrefixOf` name
                 then "aa"
                 else "bp"
-          in unit ++ "\t" ++ show poly ++ "\t" ++ show str
+          in unit ++ "\t" ++ unpack poly ++ "\t" ++ show str
         MoleculeType poly _ -> 
           let unit =
                 if "NP_" `B8.isPrefixOf` name
                 then "aa"
                 else "bp"
-          in unit ++ "\t" ++ show poly 
+          in unit ++ "\t" ++ unpack poly 
 
 instance Show DEFINITION where
   show (DEFINITION str) = "DEFINITION\t" ++ unpack str
@@ -226,7 +230,7 @@ instance Show FEATURE where
       showPS ss = 
         B8.unpack $ B8.intercalate "\n" $ 
         map (\(k,v) -> 
-              let v' = if all isDigit $ unpack v
+              let v' = if (all isDigit $ unpack v) || (k == "number")
                        then v
                        else '"' `B8.cons` v `B8.snoc` '"'
                   s21 = B8.pack (replicate 21 ' ') `B8.snoc` '/'

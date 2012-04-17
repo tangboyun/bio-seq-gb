@@ -25,10 +25,10 @@ import qualified Data.Attoparsec.ByteString.Char8 as At
 import           Data.ByteString                  (ByteString)
 import qualified Data.ByteString.Char8            as B8
 import           Data.Char                        (toUpper,isPrint,isAlpha)
+import Data.Maybe
 
 parseGBs :: Parser [GBRecord]
-parseGBs = do
-  many1 $ many space *> parseGB
+parseGBs = many1 $ many space *> parseGB
 
 parseGB :: Parser GBRecord
 parseGB = do
@@ -61,14 +61,14 @@ parseLOCUS = do
   string "bp" <|> string "aa"
   skipSpace
   poly <- many1 letter_ascii
-  topo <- fmap (fmap ((zipWith ($) (toUpper:repeat id)) . B8.unpack)) $ 
+  topo' <- fmap (fmap ((zipWith ($) (toUpper:repeat id)) . B8.unpack)) $ 
           optional $ 
           many1 space *> (string "linear" <|> string "circular")
   skipSpace
   gbd <- many1 letter_ascii
   skipSpace
   date <- takeWhile1 (not . isSpace)
-  return $! LOCUS name len (MoleculeType (B8.pack poly) (fmap read topo)) (read gbd) date
+  return $! LOCUS name len (MoleculeType (B8.pack poly) (fmap read topo')) (read gbd) date
  
 parseDEFINITION :: Parser DEFINITION
 parseDEFINITION = do
@@ -86,7 +86,7 @@ parseACCESSION :: Parser ACCESSION
 parseACCESSION = do
   string "ACCESSION"
   skipSpace
-  access <- takeWhile1 (not . isSpace)
+  access <- takeWhile1 isPrint -- in NM_001002009: ACCESSION   NM_001002009 NR_029372
   return $! ACCESSION $ access
 
 parseVERSION :: Parser VERSION
@@ -225,13 +225,14 @@ parseFEATURE = do
       c <- optional $ char '"'
       case c of
         Nothing -> do 
-          num <- decimal :: Parser Integer
-          return $! (k, B8.pack $! show num)
+          num <- decimal :: Parser Integer -- in NM_000222,exon 1434..1627, /number=9b ,typo or what?
+          ch <- optional $ many1 letter_ascii
+          return $! (k, (B8.pack $ show num) `B8.append` (B8.pack $ fromMaybe "" ch))
         _ -> do
           t <- At.takeWhile (\ch -> isPrint ch && ch /= '"') -- can be empty
           ts' <- optional $ many1 $ endOfLine *>
                  replicateM_ 21 (char ' ') *>
-                 takeWhile1 (\ch -> isPrint ch && ch /= '"')
+                 At.takeWhile (\ch -> isPrint ch && ch /= '"') -- can be empty
           char '"'
           case ts' of
             Just ts -> return $! (k, B8.concat $! t : ts)
