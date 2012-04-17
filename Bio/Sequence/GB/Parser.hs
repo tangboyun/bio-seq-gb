@@ -223,21 +223,26 @@ parseFEATURE = do
       char '/'
       k <- takeWhile1 (\c -> isAlpha c || c == '_')
       char '='
-      c <- optional $ char '"'
-      case c of
-        Nothing -> do 
-          num <- decimal :: Parser Integer -- in NM_000222,exon 1434..1627, /number=9b ,typo or what?
-          ch <- optional $ many1 letter_ascii
-          return $! (k, (B8.pack $ show num) `B8.append` (B8.pack $ fromMaybe "" ch))
-        _ -> do
-          t <- At.takeWhile (\ch -> isPrint ch && ch /= '"') -- can be empty
-          ts' <- optional $ many1 $ endOfLine *>
-                 replicateM_ 21 (char ' ') *>
-                 At.takeWhile (\ch -> isPrint ch && ch /= '"') -- can be empty
-          char '"'
-          case ts' of
-            Just ts -> return $! (k, B8.concat $! t : ts)
-            _       -> return $! (k, t)
+      if k == "citation"
+        then do
+        t <- takeWhile1 isPrint
+        return (k,t)
+        else do
+        c <- optional $ char '"'
+        case c of
+          Nothing -> do 
+            num <- decimal :: Parser Integer -- in NM_000222,exon 1434..1627, /number=9b ,typo or what?
+            ch <- optional $ many1 letter_ascii
+            return $! (k, (B8.pack $ show num) `B8.append` (B8.pack $ fromMaybe "" ch))
+          _ -> do
+            t <- At.takeWhile (\ch -> isPrint ch && ch /= '"') -- can be empty
+            ts' <- optional $ many1 $ endOfLine *>
+                   replicateM_ 21 (char ' ') *>
+                   At.takeWhile (\ch -> isPrint ch && ch /= '"') -- can be empty
+            char '"'
+            case ts' of
+              Just ts -> return $! (k, B8.concat $! t : ts)
+              _       -> return $! (k, t)
 
 -- parseCONTIG :: Parser CONTIG
 -- parseCONTIG = do

@@ -230,7 +230,7 @@ instance Show FEATURE where
       showPS ss = 
         B8.unpack $ B8.intercalate "\n" $ 
         map (\(k,v) -> 
-              let v' = if (all isDigit $ unpack v) || (k == "number")
+              let v' = if (all isDigit $ unpack v) || (k == "number") || (k == "citation")
                        then v
                        else '"' `B8.cons` v `B8.snoc` '"'
                   s21 = B8.pack (replicate 21 ' ') `B8.snoc` '/'
