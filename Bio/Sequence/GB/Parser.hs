@@ -86,7 +86,8 @@ parseACCESSION :: Parser ACCESSION
 parseACCESSION = do
   string "ACCESSION"
   skipSpace
-  access <- takeWhile1 isPrint -- in NM_001002009: ACCESSION   NM_001002009 NR_029372
+  access <- parseMaybeMultiLines -- in NM_001002009: ACCESSION   NM_001002009 NR_029372
+                                -- in NM_002266: this damn field has multilines...
   return $! ACCESSION $ access
 
 parseVERSION :: Parser VERSION
