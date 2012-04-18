@@ -40,7 +40,7 @@ parseGB = do
   key  <- parseKEYWORDS <* endOfLine             <?> "Parsing error: KEYWORDS"
   seg  <- (optional $ parseSEGMENT <* endOfLine) <?> "Parsing error: SEGMENT"
   sou  <- parseSOURCE                            <?> "Parsing error: SOURCE"
-  arts <- (many1 $ endOfLine *> parseARTICLE)    <?> "Parsing error: REFERENCE"
+  arts <- optional (many1 $ endOfLine *> parseARTICLE)    <?> "Parsing error: REFERENCE"
   endOfLine
   com  <- (optional $ parseCOMMENT <* endOfLine) <?> "Parsing error: COMMENT"
   (optional $ parsePRIMARY *> skipSpace)        <?> "Parsing error: PRIMARY" 
@@ -203,10 +203,8 @@ parseFEATURE = do
   str <- takeWhile1 $ not . isSpace
   skipSpace
   loc <- parseLOCDes
-  endOfLine
-  q <- parseQualifier
   qs <- many $ endOfLine *> parseQualifier
-  return $! FEATURE str loc $ q:qs      
+  return $! FEATURE str loc qs      
   where
     parseLOCDes = do
       ss <- optional $ many1 $ 

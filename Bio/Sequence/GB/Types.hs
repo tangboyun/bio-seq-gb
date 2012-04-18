@@ -44,7 +44,7 @@ data GBRecord = GB {
   ,keywords :: KEYWORDS
   ,segment :: Maybe SEGMENT
   ,source :: SOURCE
-  ,references :: [REFERENCE]
+  ,references :: Maybe [REFERENCE] -- e.g. NM_053042  has no reference
   ,comment :: Maybe COMMENT
   ,features :: [FEATURE]
   ,origin :: ORIGIN
@@ -270,7 +270,7 @@ instance Show GBRecord where
        (intercalate "\n" . map 
         (\(i,r) -> 
           "REFERENCE\t" ++ show i ++ "\n" ++ show r
-        ) . zip ([1..]::[Int])) . Just . references
+        ) . zip ([1..]::[Int])) . references
     ,fmap show . comment
     ,fmap (("FEATURES\tLocation/Qualifiers\n" ++) . 
            intercalate "\n" . map show) . Just . features
