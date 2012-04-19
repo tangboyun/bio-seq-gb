@@ -151,7 +151,7 @@ parseSOURCE = do
   genus <- takeWhile1 isAlpha
   skipSpace
   spe <- takeWhile1 isAlpha
-  many1 $ endOfLine *> string "  " *> many1 (char ' ') *> 
+  many $ endOfLine *> string "  " *> many1 (char ' ') *> 
                 takeWhile1 isPrint
   return $! SOURCE $ ORGANISM genus spe
 

@@ -17,7 +17,7 @@ module Bio.Sequence.GB.Types
 import           Data.ByteString       (ByteString)
 import           Data.ByteString.Char8 (unpack,append)
 import qualified Data.ByteString.Char8 as B8
-import           Data.Char             (isDigit)
+import           Data.Char             (isDigit,toLower)
 import           Data.List             (intercalate)
 import           Data.List.Split       (splitEvery)
 import           Data.Maybe            (fromMaybe)
@@ -166,7 +166,7 @@ instance Show LOCUS where
                 if "NP_" `B8.isPrefixOf` name
                 then "aa"
                 else "bp"
-          in unit ++ "\t" ++ unpack poly ++ "\t" ++ show str
+          in unit ++ "\t" ++ unpack poly ++ "\t" ++ (map toLower $ show str)
         MoleculeType poly _ -> 
           let unit =
                 if "NP_" `B8.isPrefixOf` name
