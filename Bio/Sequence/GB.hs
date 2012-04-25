@@ -13,6 +13,8 @@
 module Bio.Sequence.GB
        (
          readGB
+       , toStr
+       , fromByteString
        )
        where
 
@@ -36,14 +38,14 @@ toStr = show
 fromByteString :: ByteString -> Maybe GBRecord
 fromByteString = maybeResult . parse (many space *> parseGB <* many space)
   
-toSeq :: GBRecord -> Sequence a
-toSeq gb = undefined
+-- toSeq :: GBRecord -> Sequence a
+-- toSeq gb = undefined
 
-extractExons,extractUTR3',extractUTR5',extractGene,extractCDS,extractProtein :: GBRecord -> Maybe [Sequence a]
-extractExons = undefined
-extractUTR3' = undefined
-extractUTR5' = undefined
-extractGene = undefined
-extractCDS = undefined
-extractProtein = undefined
+-- extractExons,extractUTR3',extractUTR5',extractGene,extractCDS,extractProtein :: GBRecord -> Maybe [Sequence a]
+-- extractExons = undefined
+-- extractUTR3' = undefined
+-- extractUTR5' = undefined
+-- extractGene = undefined
+-- extractCDS = undefined
+-- extractProtein = undefined
 
