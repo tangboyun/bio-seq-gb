@@ -43,7 +43,7 @@ parseGB = do
   arts <- optional (many1 $ endOfLine *> parseARTICLE)    <?> "Parsing error: REFERENCE"
   endOfLine
   com  <- (optional $ parseCOMMENT <* endOfLine) <?> "Parsing error: COMMENT"
-  (optional $ parsePRIMARY *> skipSpace)        <?> "Parsing error: PRIMARY" 
+  _ <- (optional $ parsePRIMARY *> skipSpace)        <?> "Parsing error: PRIMARY" 
   fea  <- string "FEATURES" *> 
           manyTill anyChar (try endOfLine) *> 
           many1 (parseFEATURE <* endOfLine)     <?> "Parsing error: FEATURES"
@@ -52,13 +52,13 @@ parseGB = do
  
 parseLOCUS :: Parser LOCUS
 parseLOCUS = do
-  string "LOCUS" 
+  _ <- string "LOCUS" 
   skipSpace
   name <- takeWhile1 (not . isSpace)
   skipSpace
   len  <- decimal 
   skipSpace
-  string "bp" <|> string "aa"
+  _ <- string "bp" <|> string "aa"
   skipSpace
   poly <- many1 letter_ascii
   topo' <- fmap (fmap ((zipWith ($) (toUpper:repeat id)) . B8.unpack)) $ 
@@ -72,7 +72,7 @@ parseLOCUS = do
  
 parseDEFINITION :: Parser DEFINITION
 parseDEFINITION = do
-  string "DEFINITION"
+  _ <- string "DEFINITION"
   skipSpace
   ls <- takeWhile1 (\c -> isPrint c || c == ' ')
   lss <- optional $
@@ -84,7 +84,7 @@ parseDEFINITION = do
       
 parseACCESSION :: Parser ACCESSION
 parseACCESSION = do
-  string "ACCESSION"
+  _ <- string "ACCESSION"
   skipSpace
   access <- parseMaybeMultiLines -- in NM_001002009: ACCESSION   NM_001002009 NR_029372
                                 -- in NM_002266: this damn field has multilines...
@@ -92,10 +92,10 @@ parseACCESSION = do
 
 parseVERSION :: Parser VERSION
 parseVERSION = do
-  string "VERSION"
+  _ <- string "VERSION"
   skipSpace
   str <- takeWhile1 (/= '.')
-  char '.'
+  _ <- char '.'
   ver <- decimal :: Parser Integer
   skipSpace
   gi <- parseGI
@@ -108,19 +108,19 @@ parseVERSION = do
 
 parseDBLINK :: Parser DBLINK
 parseDBLINK = do
-  string "DBLINK"
+  _ <- string "DBLINK"
   skipSpace
   parseProject <|> parseBioProject
   where
     parseProject = do
-      string "Project:"
+      _ <- string "Project:"
       skipSpace 
       str <- takeWhile1 isDigit
       return $! Project str
     parseBioProject = do
-      string "BioProject:"
+      _ <- string "BioProject:"
       skipSpace
-      string "PRJ"
+      _ <- string "PRJ"
       c1 <- char 'E' <|> char 'N' <|> char 'D'
       c2 <- letter_ascii
       str <- takeWhile1 isDigit
@@ -129,36 +129,36 @@ parseDBLINK = do
   
 parseKEYWORDS :: Parser KEYWORDS
 parseKEYWORDS = do
-  string "KEYWORDS"
+  _ <- string "KEYWORDS"
   skipSpace
   str <- parseMaybeMultiLines
   return $! KEYWORDS str
 
 parseSEGMENT :: Parser SEGMENT
 parseSEGMENT = do
-  string "SEGMENT"
+  _ <- string "SEGMENT"
   skipSpace
   str <- parseMaybeMultiLines
   return $! SEGMENT str
   
 parseSOURCE :: Parser SOURCE
 parseSOURCE = do
-  string "SOURCE"
-  manyTill anyChar (try endOfLine)
+  _ <- string "SOURCE"
+  _ <- manyTill anyChar (try endOfLine)
   skipSpace
-  string "ORGANISM"
+  _ <- string "ORGANISM"
   skipSpace 
   genus <- takeWhile1 isAlpha
   skipSpace
   spe <- takeWhile1 isAlpha
-  many $ endOfLine *> string "  " *> many1 (char ' ') *> 
-                takeWhile1 isPrint
+  _ <- many $ endOfLine *> string "  " *> many1 (char ' ') *> 
+       takeWhile1 isPrint
   return $! SOURCE $ ORGANISM genus spe
 
 parseARTICLE :: Parser REFERENCE
 parseARTICLE = do
-  string "REFERENCE"
-  takeTill (\c -> c == '\n' || c == '\r')
+  _ <- string "REFERENCE"
+  _ <- takeTill (\c -> c == '\n' || c == '\r')
   a <- optional $ endOfLine *> parseSubKeyword "AUTHORS" 
   c <- optional $ endOfLine *> parseSubKeyword "CONSRTM" 
   t <- optional $ endOfLine *> parseSubKeyword "TITLE" 
@@ -179,8 +179,8 @@ parseMaybeMultiLines = do
 
 parseSubKeyword :: ByteString -> Parser ByteString
 parseSubKeyword keyword = do
-  replicateM_ 2 (char ' ')
-  string keyword
+  _ <- replicateM_ 2 (char ' ')
+  _ <- string keyword
   skipSpace
   result <- parseMaybeMultiLines
   return $! result
@@ -192,14 +192,14 @@ parsePRIMARY = do
 
 parseCOMMENT :: Parser COMMENT
 parseCOMMENT = do
-  string "COMMENT"
+  _ <- string "COMMENT"
   skipSpace
   str <- parseMaybeMultiLines
   return $! COMMENT str
 
 parseFEATURE :: Parser FEATURE
 parseFEATURE = do
-  many1 $ char ' ' 
+  _ <- many1 $ char ' ' 
   str <- takeWhile1 $ not . isSpace
   skipSpace
   loc <- parseLOCDes
@@ -217,10 +217,10 @@ parseFEATURE = do
           cs <- many1 (satisfy (/= ')')) <* replicateM_ (length ss') (char ')')
           return $ B8.concat ss' `B8.append` B8.pack cs `B8.append` B8.pack ( replicate (length ss') ')')
     parseQualifier = do
-      replicateM_ 21 $ char ' ' -- qualifier begin at Col 22
-      char '/'
+      _ <- replicateM_ 21 $ char ' ' -- qualifier begin at Col 22
+      _ <- char '/'
       k <- takeWhile1 (\c -> isAlpha c || c == '_')
-      char '='
+      _ <- char '='
       if k == "citation"
         then do
         t <- takeWhile1 isPrint
@@ -237,7 +237,7 @@ parseFEATURE = do
             ts' <- optional $ many1 $ endOfLine *>
                    replicateM_ 21 (char ' ') *>
                    At.takeWhile (\ch -> isPrint ch && ch /= '"') -- can be empty
-            char '"'
+            _ <- char '"'
             case ts' of
               Just ts -> return $! (k, B8.concat $! t : ts)
               _       -> return $! (k, t)
@@ -251,8 +251,8 @@ parseFEATURE = do
 
 parseORIGIN :: Parser ORIGIN
 parseORIGIN = do
-  string "ORIGIN"
-  many $ satisfy (/= '\n')
+  _ <- string "ORIGIN"
+  _ <- many $ satisfy (/= '\n')
   endOfLine
   seqStr <- manyTill anyChar (try $ string "//")
   return $! ORIGIN $! B8.pack $ filter isAlpha seqStr
